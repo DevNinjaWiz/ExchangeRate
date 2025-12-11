@@ -1,0 +1,5 @@
+@mixin define-palette($palette) {
+  @each $key, $value in $palette {
+    --#{$key}: #{$value};
+  }
+}

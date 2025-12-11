@@ -1,0 +1,42 @@
+$shared-colors: (
+  red: #ef4444,
+  coral: #f97316,
+);
+
+$palette-dark: map-merge(
+  $shared-colors,
+  (
+    background: #030712,
+    text: #e2e8f0,
+    surface: #0f172a,
+    muted: #94a3b8,
+    accent: #2563eb,
+    primary: #2563eb,
+    primary-dark: #1d4ed8,
+    secondary: #7c3aed,
+    danger: #ef4444,
+    warning: #fbbf24,
+    success: #10b981,
+  )
+);
+
+$palette-light: map-merge(
+  $shared-colors,
+  (
+    background: #f8fafc,
+    text: #0f172a,
+    surface: #f1f5f9,
+    muted: #475569,
+    accent: #1d4ed8,
+    primary: #371f1f,
+    primary-dark: #2563eb,
+    secondary: #7c3aed,
+    danger: #dc2626,
+    warning: #fbbf24,
+    success: #059669,
+  )
+);
+
+@function colors($key) {
+  @return var(--#{$key});
+}

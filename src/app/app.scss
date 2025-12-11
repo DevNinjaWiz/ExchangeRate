@@ -1,0 +1,6 @@
+@use 'index' as *;
+
+.demo-primary {
+  font-weight: 600;
+  color: colors('primary-dark');
+}
