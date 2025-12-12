@@ -9,11 +9,12 @@ import {
 } from '../shared/constants';
 import { Button, Section } from '../shared/components';
 
-import { merge, Subject, takeUntil, tap } from 'rxjs';
+import { fromEvent, map, merge, Subject, takeUntil, tap } from 'rxjs';
+import { Calculator } from './calculator/calculator';
 
 @Component({
   selector: 'app-root',
-  imports: [Button, Section],
+  imports: [Button, Section, Calculator],
   templateUrl: './app.html',
   styleUrls: ['./app.scss'],
 })
@@ -21,6 +22,7 @@ export class App implements OnInit, OnDestroy {
   title = 'Exchange Rate Assignment';
   sunSvg = THEME_SUN_SVG;
   moonSvg = THEME_MOON_SVG;
+  isOnline = signal<boolean>(navigator.onLine);
 
   themeMode = signal<Theme>(
     (localStorage.getItem(LOCAL_STORAGE_KEY.THEME) as Theme) ?? THEME_PALETTE.LIGHT
@@ -39,7 +41,12 @@ export class App implements OnInit, OnDestroy {
       })
     );
 
-    merge(watchToggleTheme$).pipe(takeUntil(this._destroy$)).subscribe();
+    const watchOnlineStatus$ = merge(
+      fromEvent(window, 'online').pipe(map(() => true)),
+      fromEvent(window, 'offline').pipe(map(() => false))
+    ).pipe(tap((online) => this.isOnline.set(online)));
+
+    merge(watchToggleTheme$, watchOnlineStatus$).pipe(takeUntil(this._destroy$)).subscribe();
   }
 
   ngOnDestroy(): void {

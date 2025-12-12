@@ -2,6 +2,10 @@
   <section>
     <p>Exchange Rate</p>
 
+    @if (!isOnline()) {
+    <p>You are in offline mode data is not latest</p>
+    }
+
     <app-button
       appearance="icon"
       [iconOnly]="true"
@@ -17,8 +21,8 @@
     <p>This is the primary content of the panel.</p>
   </app-section>
 
-  <app-section>
-    <span section-title>Historical Trends Analysis</span>
-    <p>I'm visible because I am open</p>
+  <app-section [isOpen]="true">
+    <span section-title>Currency Conversion Calculator </span>
+    <app-calculator></app-calculator>
   </app-section>
 </main>

@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, input } from '@angular/core';
 import { MatExpansionModule } from '@angular/material/expansion';
 
 @Component({
@@ -7,4 +7,6 @@ import { MatExpansionModule } from '@angular/material/expansion';
   templateUrl: './section.html',
   styleUrl: './section.scss',
 })
-export class Section {}
+export class Section {
+  isOpen = input<boolean>(false);
+}
