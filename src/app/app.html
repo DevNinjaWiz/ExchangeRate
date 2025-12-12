@@ -6,11 +6,19 @@
       appearance="icon"
       [iconOnly]="true"
       [svg]="themeMode() === 'dark' ? sunSvg : moonSvg"
-      (click)="toggleTheme()"
+      (click)="onToggleTheme()"
       aria-label="Toggle theme"
       title="Toggle theme"
     ></app-button>
   </section>
 
-  <app-section></app-section>
+  <app-section>
+    <span section-title>Real-Time Exchange Rate</span>
+    <p>This is the primary content of the panel.</p>
+  </app-section>
+
+  <app-section>
+    <span section-title>Historical Trends Analysis</span>
+    <p>I'm visible because I am open</p>
+  </app-section>
 </main>

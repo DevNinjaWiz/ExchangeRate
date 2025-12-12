@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component } from '@angular/core';
 import { MatExpansionModule } from '@angular/material/expansion';
 
 @Component({
@@ -7,6 +7,4 @@ import { MatExpansionModule } from '@angular/material/expansion';
   templateUrl: './section.html',
   styleUrl: './section.scss',
 })
-export class Section {
-   readonly panelOpenState = signal(false);
-}
+export class Section {}
