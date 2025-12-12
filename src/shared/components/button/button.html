@@ -1,0 +1,39 @@
+@if (href()) {
+  <a
+    [class]="buttonClasses()"
+    [attr.href]="disabled() || loading() ? null : href()"
+    [attr.target]="target()"
+    [attr.rel]="rel()"
+    [attr.aria-disabled]="ariaDisabled()"
+    (click)="handleAnchorClick($event)"
+  >
+    @if (loading()) {
+      <span class="app-button__spinner" aria-hidden="true"></span>
+    }
+    @if (safeSvg()) {
+      <span class="app-button__svg" [innerHTML]="safeSvg()"></span>
+    } @else {
+      <span class="app-button__content">
+        <ng-content></ng-content>
+      </span>
+    }
+  </a>
+} @else {
+  <button
+    [class]="buttonClasses()"
+    [type]="htmlType()"
+    [disabled]="disabled() || loading()"
+    [attr.aria-busy]="loading() ? 'true' : null"
+  >
+    @if (loading()) {
+      <span class="app-button__spinner" aria-hidden="true"></span>
+    }
+    @if (safeSvg()) {
+      <span class="app-button__svg" [innerHTML]="safeSvg()"></span>
+    } @else {
+      <span class="app-button__content">
+        <ng-content></ng-content>
+      </span>
+    }
+  </button>
+}

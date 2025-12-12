@@ -2,6 +2,13 @@
   <section>
     <p>Exchange Rate</p>
 
-    <button type="button" (click)="toggleTheme()">toggle theme</button>
+    <app-button
+      appearance="icon"
+      [iconOnly]="true"
+      [svg]="themeMode() === 'dark' ? sunSvg : moonSvg"
+      (click)="toggleTheme()"
+      aria-label="Toggle theme"
+      title="Toggle theme"
+    ></app-button>
   </section>
 </main>

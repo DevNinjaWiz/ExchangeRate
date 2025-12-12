@@ -1,18 +1,22 @@
 import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { Theme } from '../shared/types';
-import { THEME_CLASS, THEME_PALETTE } from '../shared/constants';
+import { THEME_CLASS, THEME_MOON_SVG, THEME_PALETTE, THEME_SUN_SVG } from '../shared/constants';
+import { Button } from '../shared/components';
+
 import { merge, Subject, takeUntil, tap } from 'rxjs';
 
 @Component({
   selector: 'app-root',
-  imports: [],
+  imports: [Button],
   templateUrl: './app.html',
-  styleUrl: './app.scss',
+  styleUrls: ['./app.scss'],
 })
 export class App implements OnInit, OnDestroy {
   title = 'Exchange Rate';
-  themeMode = signal<Theme>(THEME_PALETTE.DARK);
+  sunSvg = THEME_SUN_SVG;
+  moonSvg = THEME_MOON_SVG;
 
+  themeMode = signal<Theme>(THEME_PALETTE.DARK);
   private _toggleTheme$ = new Subject<Theme>();
   private _destory$ = new Subject<void>();
 
