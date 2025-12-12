@@ -1,13 +1,13 @@
 import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { Theme } from '../shared/types';
 import { THEME_CLASS, THEME_MOON_SVG, THEME_PALETTE, THEME_SUN_SVG } from '../shared/constants';
-import { Button } from '../shared/components';
+import { Button, Section } from '../shared/components';
 
 import { merge, Subject, takeUntil, tap } from 'rxjs';
 
 @Component({
   selector: 'app-root',
-  imports: [Button],
+  imports: [Button, Section],
   templateUrl: './app.html',
   styleUrls: ['./app.scss'],
 })
@@ -16,7 +16,7 @@ export class App implements OnInit, OnDestroy {
   sunSvg = THEME_SUN_SVG;
   moonSvg = THEME_MOON_SVG;
 
-  themeMode = signal<Theme>(THEME_PALETTE.DARK);
+  themeMode = signal<Theme>(THEME_PALETTE.LIGHT);
   private _toggleTheme$ = new Subject<Theme>();
   private _destory$ = new Subject<void>();
 
@@ -25,10 +25,7 @@ export class App implements OnInit, OnDestroy {
       tap((theme) => {
         this.themeMode.set(theme);
 
-        document.documentElement?.classList.toggle(
-          THEME_CLASS.LIGHT,
-          theme === THEME_PALETTE.LIGHT
-        );
+        document.documentElement?.classList.toggle(THEME_CLASS.DARK);
       })
     );
 

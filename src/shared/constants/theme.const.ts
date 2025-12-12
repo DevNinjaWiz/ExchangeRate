@@ -6,4 +6,5 @@ export const THEME_PALETTE = {
 // Below cconst is css class use in style.scss
 export const THEME_CLASS = {
   LIGHT: 'theme-light',
+  DARK:'theme-dark'
 } as const;

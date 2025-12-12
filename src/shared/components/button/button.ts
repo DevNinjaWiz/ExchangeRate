@@ -10,7 +10,6 @@ import type {
 
 @Component({
   selector: 'app-button',
-  standalone: true,
   imports: [CommonModule],
   templateUrl: './button.html',
   styleUrls: ['./button.scss'],
