@@ -1,4 +1,5 @@
 import { Component, OnDestroy, OnInit, signal } from '@angular/core';
+import { fromEvent, map, merge, Subject, takeUntil, tap } from 'rxjs';
 import { Theme } from '../shared/types';
 import {
   LOCAL_STORAGE_KEY,
@@ -8,15 +9,15 @@ import {
   THEME_SUN_SVG,
 } from '../shared/constants';
 import { Button, Section } from '../shared/components';
-
-import { fromEvent, map, merge, Subject, takeUntil, tap } from 'rxjs';
-import { Calculator } from './calculator/calculator';
+import { Calculator } from './UI/calculator/calculator';
+import { ExchangeRateTable } from './UI/exchange-rate-table/exchange-rate-table';
 
 @Component({
   selector: 'app-root',
-  imports: [Button, Section, Calculator],
+  imports: [Button, Section, Calculator, ExchangeRateTable],
   templateUrl: './app.html',
   styleUrls: ['./app.scss'],
+  providers: [],
 })
 export class App implements OnInit, OnDestroy {
   title = 'Exchange Rate Assignment';
@@ -31,22 +32,8 @@ export class App implements OnInit, OnDestroy {
   private _destroy$ = new Subject<void>();
 
   ngOnInit(): void {
-    this.applyTheme(this.themeMode());
-
-    const watchToggleTheme$ = this._toggleTheme$.pipe(
-      tap((theme) => {
-        this.themeMode.set(theme);
-        localStorage.setItem(LOCAL_STORAGE_KEY.THEME, theme);
-        this.applyTheme(theme);
-      })
-    );
-
-    const watchOnlineStatus$ = merge(
-      fromEvent(window, 'online').pipe(map(() => true)),
-      fromEvent(window, 'offline').pipe(map(() => false))
-    ).pipe(tap((online) => this.isOnline.set(online)));
-
-    merge(watchToggleTheme$, watchOnlineStatus$).pipe(takeUntil(this._destroy$)).subscribe();
+    this.init();
+    this.initWatcher();
   }
 
   ngOnDestroy(): void {
@@ -62,5 +49,26 @@ export class App implements OnInit, OnDestroy {
 
   private applyTheme(theme: Theme): void {
     document.documentElement?.classList.toggle(THEME_CLASS.DARK, theme === THEME_PALETTE.DARK);
+  }
+
+  private init() {
+    this.applyTheme(this.themeMode());
+  }
+
+  private initWatcher() {
+    const watchToggleTheme$ = this._toggleTheme$.pipe(
+      tap((theme) => {
+        this.themeMode.set(theme);
+        localStorage.setItem(LOCAL_STORAGE_KEY.THEME, theme);
+        this.applyTheme(theme);
+      })
+    );
+
+    const watchOnlineStatus$ = merge(
+      fromEvent(window, 'online').pipe(map(() => true)),
+      fromEvent(window, 'offline').pipe(map(() => false))
+    ).pipe(tap((online) => this.isOnline.set(online)));
+
+    merge(watchToggleTheme$, watchOnlineStatus$).pipe(takeUntil(this._destroy$)).subscribe();
   }
 }

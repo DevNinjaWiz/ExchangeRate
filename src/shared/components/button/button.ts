@@ -1,12 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import type {
-  ButtonAppearance,
-  ButtonHtmlType,
-  ButtonShape,
-  ButtonSize,
-} from '../../types/button.type';
+import { ButtonAppearance, ButtonHtmlType, ButtonShape, ButtonSize } from '../../types';
 
 @Component({
   selector: 'app-button',

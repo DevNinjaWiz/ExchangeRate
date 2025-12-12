@@ -6,13 +6,19 @@
 
 .calculator-row {
   display: grid;
-  grid-template-columns: repeat(3, 10rem) ;
+  grid-template-columns: 10rem 10rem 10rem 6rem;
   column-gap: 1rem;
   align-items: center;
 }
 
 .calculator-row select,
-.calculator-row input {
+.calculator-row input,
+.calculator-row button {
   width: 100%;
   box-sizing: border-box;
+}
+
+.calculator-actions {
+  display: flex;
+  justify-content: flex-end;
 }
