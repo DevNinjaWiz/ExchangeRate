@@ -1,1 +1,15 @@
-<input type="text" (input)="onBaseCurrencyChange($event.target.value)" />
+<div class="exchange-rate-table">
+  <label>
+    Base Currency
+    <input
+      type="text"
+      [value]="DEFAULT_BASE_CURRENCY_CODE"
+      (input)="onBaseCurrencyChange($event.target.value)"
+    />
+    <app-button [svg]="filterSvg" [iconOnly]="true" appearance="icon" shape="circle" />
+  </label>
+
+  @if (conversionRows().length) {
+  <app-table [dataSource]="conversionRows()" [columns]="tableColumns" />
+  }
+</div>

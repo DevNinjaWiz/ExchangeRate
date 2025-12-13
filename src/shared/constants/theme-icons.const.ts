@@ -17,3 +17,15 @@ export const THEME_MOON_SVG = `
   <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 1 0 9.8 9.8Z"></path>
 </svg>
 `;
+
+export const THEME_FILTER_SVG = `
+<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+  <path d="M4 5h16l-6 7v7l-4 2v-9L4 5z"></path>
+</svg>
+`;
+
+export const THEME_FILTER_FILLED_SVG = `
+<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+  <path d="M3 5a1 1 0 0 1 1-1h16a1 1 0 0 1 .8 1.6L14 13.5V20a1 1 0 0 1-.4.8l-4 3A1 1 0 0 1 8 23v-9.5L3.2 5.6A1 1 0 0 1 3 5z"></path>
+</svg>
+`;

@@ -1,17 +1,49 @@
-import { Component, OnDestroy, OnInit, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
 import { debounceTime, merge, Subject, takeUntil, tap } from 'rxjs';
-import { CurrencyRate, SupportedCurrencyCode } from '../../../shared/types';
+import { CurrencyRate, SupportedCurrencyCode, TableColumn } from '../../../shared/types';
 import { ExchangeRate } from '../../services';
-import { CURRENCY, DEFAULT_DEBOUNCE_TIME } from '../../../shared/constants';
+import {
+  CURRENCY,
+  DEFAULT_BASE_CURRENCY_CODE,
+  DEFAULT_DEBOUNCE_TIME,
+  THEME_FILTER_FILLED_SVG,
+} from '../../../shared/constants';
+import { Button, Table } from '../../../shared/components';
 
 @Component({
   selector: 'app-exchange-rate-table',
-  imports: [],
+  imports: [CommonModule, Button, Table],
   templateUrl: './exchange-rate-table.html',
   styleUrl: './exchange-rate-table.scss',
 })
 export class ExchangeRateTable implements OnInit, OnDestroy {
+  DEFAULT_BASE_CURRENCY_CODE = DEFAULT_BASE_CURRENCY_CODE;
+  filterSvg = THEME_FILTER_FILLED_SVG;
   currencyRate = signal<CurrencyRate | null>(null);
+
+  tableColumns: TableColumn<ConversionRow>[] = [
+    { id: 'currency', header: 'Currency', cell: (row) => row.currency },
+    { id: 'description', header: 'Description', cell: (row) => row.description },
+    { id: 'rate', header: 'Rate', cell: (row) => row.rate.toFixed(2) },
+  ];
+  conversionRows = computed(() => {
+    const rate = this.currencyRate();
+    if (!rate) {
+      return [];
+    }
+
+    return Object.entries(rate.conversionRates).map(([key, value]) => {
+      const code = key as SupportedCurrencyCode;
+
+      return {
+        currency: code,
+        description: CURRENCY[code] ?? code,
+        rate: value,
+      };
+    });
+  });
+
   private _changeCurrencyCode$ = new Subject<SupportedCurrencyCode>();
   private _destroy$ = new Subject<void>();
 
@@ -27,7 +59,7 @@ export class ExchangeRateTable implements OnInit, OnDestroy {
   }
 
   onBaseCurrencyChange(value: string) {
-    const code = value.toUpperCase();
+    const code = value.trim().toUpperCase();
 
     const isValid = code in CURRENCY;
 
@@ -53,3 +85,9 @@ export class ExchangeRateTable implements OnInit, OnDestroy {
       .subscribe();
   }
 }
+
+type ConversionRow = {
+  currency: SupportedCurrencyCode;
+  description: string;
+  rate: number;
+};
