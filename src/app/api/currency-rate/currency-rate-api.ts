@@ -1,12 +1,13 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { CurrencyRate, SupportedCurrencyCode } from '../../../shared/types';
+import { environment } from '../../../environments/environment';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 @Injectable({ providedIn: 'root' })
 export class CurrencyRateApi {
-  private readonly apiBaseUrl = 'https://v6.exchangerate-api.com/v6/a2e98cc5fcfd6fc69a49bad1';
+  private readonly apiBaseUrl = `https://v6.exchangerate-api.com/v6/${environment.exchangeRateAPI}`;
 
   constructor(private http: HttpClient) {}
 
