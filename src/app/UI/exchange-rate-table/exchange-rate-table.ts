@@ -1,23 +1,23 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
-import { BehaviorSubject, debounceTime, merge, Subject, takeUntil, tap } from 'rxjs';
-import { CurrencyRateApi } from '../../api';
+import { Component, OnDestroy, OnInit, signal } from '@angular/core';
+import { debounceTime, merge, Subject, takeUntil, tap } from 'rxjs';
+import { CurrencyRate, SupportedCurrencyCode } from '../../../shared/types';
+import { ExchangeRate } from '../../services';
+import { CURRENCY, DEFAULT_DEBOUNCE_TIME } from '../../../shared/constants';
 
 @Component({
   selector: 'app-exchange-rate-table',
   imports: [],
   templateUrl: './exchange-rate-table.html',
   styleUrl: './exchange-rate-table.scss',
-  providers: [CurrencyRateApi],
 })
 export class ExchangeRateTable implements OnInit, OnDestroy {
-  private _changeCurrencyCode$ = new Subject<string>();
+  currencyRate = signal<CurrencyRate | null>(null);
+  private _changeCurrencyCode$ = new Subject<SupportedCurrencyCode>();
   private _destroy$ = new Subject<void>();
-  private _currencyCode$ = new BehaviorSubject<string>('USD');
 
-  constructor(private _currencyRateApi: CurrencyRateApi) {}
+  constructor(private exchangeRate: ExchangeRate) {}
 
   ngOnInit(): void {
-    this.init();
     this.initWatcher();
   }
 
@@ -26,23 +26,30 @@ export class ExchangeRateTable implements OnInit, OnDestroy {
     this._destroy$.complete();
   }
 
-  onBaseCurrencyChange(code: string) {
-    this._changeCurrencyCode$.next(code);
-  }
+  onBaseCurrencyChange(value: string) {
+    const code = value.toUpperCase();
 
-  private init() {
-    this._currencyRateApi
-      .getCurrencyRateStream(this._currencyCode$)
-      .pipe(takeUntil(this._destroy$))
-      .subscribe();
+    const isValid = code in CURRENCY;
+
+    if (!isValid) {
+      return;
+    }
+
+    this._changeCurrencyCode$.next(code as SupportedCurrencyCode);
   }
 
   private initWatcher() {
     const watchChangeCurrencyCode$ = this._changeCurrencyCode$.pipe(
-      debounceTime(500),
-      tap((code) => this._currencyCode$.next(code))
+      debounceTime(DEFAULT_DEBOUNCE_TIME),
+      tap((code) => this.exchangeRate.updateBaseCurrency(code))
     );
 
-    merge(watchChangeCurrencyCode$).pipe(takeUntil(this._destroy$)).subscribe();
+    const watchGetExchangeRate$ = this.exchangeRate.currencyRateStream$.pipe(
+      tap((rate) => this.currencyRate.set(rate))
+    );
+
+    merge(watchGetExchangeRate$, watchChangeCurrencyCode$)
+      .pipe(takeUntil(this._destroy$))
+      .subscribe();
   }
 }

@@ -1,0 +1,1 @@
+export const DEFAULT_POLLING_INTERVAL_TIME = 10_000;

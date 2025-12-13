@@ -11,7 +11,7 @@ import {
 import { Button, Section } from '../shared/components';
 import { Calculator } from './UI/calculator/calculator';
 import { ExchangeRateTable } from './UI/exchange-rate-table/exchange-rate-table';
-
+ 
 @Component({
   selector: 'app-root',
   imports: [Button, Section, Calculator, ExchangeRateTable],

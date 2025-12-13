@@ -1,3 +1,5 @@
+import { CURRENCY } from '../constants/currency.const';
+
 export interface CurrencyRate {
   apiStatus: string;
   documentation: string;
@@ -6,6 +8,8 @@ export interface CurrencyRate {
   timeLastUpdateUTC: string;
   timeNextUpdateUnix: number;
   timeNextUpdateUTC: string;
-  baseCurrencyCode: string;
-  conversionRates: Record<string, number>;
+  baseCurrencyCode: SupportedCurrencyCode;
+  conversionRates: Record<SupportedCurrencyCode, number>;
 }
+
+export type SupportedCurrencyCode = keyof typeof CURRENCY;

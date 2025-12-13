@@ -1,4 +1,6 @@
-export const CURRENCY: Record<string, string> = {
+import { SupportedCurrencyCode } from '../types';
+
+export const CURRENCY = {
   AED: 'UAE Dirham',
   AFN: 'Afghan Afghani',
   ALL: 'Albanian Lek',
@@ -162,5 +164,6 @@ export const CURRENCY: Record<string, string> = {
   ZAR: 'South African Rand',
   ZMW: 'Zambian Kwacha',
   ZWL: 'Zimbabwean Dollar',
-};
+} as const;
 
+export const DEFAULT_BASE_CURRENCY_CODE: SupportedCurrencyCode = 'USD';
