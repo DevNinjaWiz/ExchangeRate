@@ -1,67 +1,67 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
-import { debounceTime, merge, Subject, takeUntil, tap } from 'rxjs';
-import { CurrencyRate, SupportedCurrencyCode, TableColumn } from '../../../shared/types';
+import { merge, Subject, takeUntil, tap } from 'rxjs';
+import { CurrencyRate, SupportedCurrencyCode, TableColumn, TableRow } from '../../../shared/types';
 import { ExchangeRate } from '../../services';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSelectModule } from '@angular/material/select';
-import {
-  CURRENCY,
-  DEFAULT_BASE_CURRENCY_CODE,
-  DEFAULT_DEBOUNCE_TIME,
-  THEME_FILTER_CLEAR_SVG,
-} from '../../../shared/constants';
-import { Button, Table } from '../../../shared/components';
+import { CURRENCY, THEME_FILTER_CLEAR_SVG } from '../../../shared/constants';
+import { Button, Select, Table } from '../../../shared/components';
 
 @Component({
   selector: 'app-exchange-rate-table',
-  imports: [CommonModule, MatFormFieldModule, MatSelectModule, Button, Table],
+  imports: [CommonModule, Button, Select, Table],
   templateUrl: './exchange-rate-table.html',
   styleUrl: './exchange-rate-table.scss',
 })
 export class ExchangeRateTable implements OnInit, OnDestroy {
-  DEFAULT_BASE_CURRENCY_CODE = DEFAULT_BASE_CURRENCY_CODE;
-  CURRENCY = CURRENCY;
   clearFilterSvg = THEME_FILTER_CLEAR_SVG;
 
   currencyRate = signal<CurrencyRate | null>(null);
   supportedCurrencyCodes = Object.keys(CURRENCY).sort() as SupportedCurrencyCode[];
   selectedCurrencyCodes = signal<SupportedCurrencyCode[]>([]);
+  currencySearchQuery = signal<string>('');
+  currencyOptionLabel = (code: SupportedCurrencyCode) => `${code} - ${CURRENCY[code] ?? ''}`;
 
-  tableColumns: TableColumn<ConversionRow>[] = [
+  tableColumns: TableColumn<TableRow>[] = [
     { id: 'currency', header: 'Currency', cell: (row) => row.currency },
     { id: 'description', header: 'Description', cell: (row) => row.description },
     { id: 'rate', header: 'Rate', cell: (row) => row.rate.toFixed(2) },
   ];
 
-  conversionRows = computed(() => {
+  tableRows = computed(() => {
     const rate = this.currencyRate();
 
     if (!rate) {
       return [];
     }
 
-    const rows = Object.entries(rate.conversionRates).map(([key, value]) => {
-      const code = key as SupportedCurrencyCode;
+    let rows = (Object.entries(rate.conversionRates) as [SupportedCurrencyCode, number][]).map(
+      ([currency, rate]) => ({
+        currency,
+        description: CURRENCY[currency] ?? '',
+        rate,
+      })
+    );
 
-      return {
-        currency: code,
-        description: CURRENCY[code],
-        rate: value,
-      };
-    });
-
-    const selected = this.selectedCurrencyCodes();
-
-    if (!selected.length) {
-      return rows;
+    if (this.selectedCurrencyCodes().length) {
+      const selectedCurrenciesSet = new Set<SupportedCurrencyCode>(this.selectedCurrencyCodes());
+      rows = rows.filter((row) => selectedCurrenciesSet.has(row.currency));
     }
 
-    const selectedSet = new Set<SupportedCurrencyCode>(selected);
-    return rows.filter((row) => selectedSet.has(row.currency));
+    const query = this.currencySearchQuery().trim().toLowerCase();
+
+    if (query.length) {
+      rows = rows.filter((row) => {
+        if (row.currency.toLowerCase().includes(query)) {
+          return true;
+        }
+
+        return (row.description ?? '').toLowerCase().includes(query);
+      });
+    }
+
+    return rows;
   });
 
-  private _changeCurrencyCode$ = new Subject<SupportedCurrencyCode>();
   private _filterCurrencyCode$ = new Subject<SupportedCurrencyCode[]>();
   private _clearFilterCurrencyCode$ = new Subject<void>();
   private _destroy$ = new Subject<void>();
@@ -77,16 +77,8 @@ export class ExchangeRateTable implements OnInit, OnDestroy {
     this._destroy$.complete();
   }
 
-  onBaseCurrencyChange(value: string) {
-    const code = value.trim().toUpperCase();
-
-    const isValid = code in CURRENCY;
-
-    if (!isValid) {
-      return;
-    }
-
-    this._changeCurrencyCode$.next(code as SupportedCurrencyCode);
+  onSearchCurrency(value: string) {
+    this.currencySearchQuery.set(value);
   }
 
   onCurrencyFilterChange(currenciesCode: string[]) {
@@ -102,11 +94,6 @@ export class ExchangeRateTable implements OnInit, OnDestroy {
   }
 
   private initWatcher() {
-    const watchChangeCurrencyCode$ = this._changeCurrencyCode$.pipe(
-      debounceTime(DEFAULT_DEBOUNCE_TIME),
-      tap((code) => this.exchangeRate.updateBaseCurrency(code))
-    );
-
     const watchGetExchangeRate$ = this.exchangeRate.currencyRateStream$.pipe(
       tap((rate) => this.currencyRate.set(rate))
     );
@@ -118,22 +105,14 @@ export class ExchangeRateTable implements OnInit, OnDestroy {
     );
 
     const watchClearFilterCurrencyCode$ = this._clearFilterCurrencyCode$.pipe(
-      tap(() => this.selectedCurrencyCodes.set([]))
+      tap(() => {
+        this.selectedCurrencyCodes.set([]);
+        this.currencySearchQuery.set('');
+      })
     );
 
-    merge(
-      watchGetExchangeRate$,
-      watchChangeCurrencyCode$,
-      watchFilterCurrencyCode$,
-      watchClearFilterCurrencyCode$
-    )
+    merge(watchGetExchangeRate$, watchFilterCurrencyCode$, watchClearFilterCurrencyCode$)
       .pipe(takeUntil(this._destroy$))
       .subscribe();
   }
 }
-
-type ConversionRow = {
-  currency: SupportedCurrencyCode;
-  description: string;
-  rate: number;
-};

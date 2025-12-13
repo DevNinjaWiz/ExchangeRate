@@ -1,17 +1,19 @@
-.exchange-rate-table__controls {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
-}
+.exchange-rate-table {
+  .--controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
 
-.exchange-rate-table__base-currency {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
+  .--search {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
 
-.exchange-rate-table__filter {
-  min-width: 260px;
+  .--filter {
+    min-width: 260px;
+  }
 }

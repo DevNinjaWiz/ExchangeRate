@@ -1,27 +1,24 @@
 <div class="exchange-rate-table">
-  <div class="exchange-rate-table__controls">
-    <label class="exchange-rate-table__base-currency">
-      Base Currency
+  <div class="--controls">
+    <label class="--search">
       <input
         type="text"
-        [value]="DEFAULT_BASE_CURRENCY_CODE"
-        (input)="onBaseCurrencyChange($event.target.value)"
+        placeholder="Search Code or description"
+        [value]="currencySearchQuery()"
+        (input)="onSearchCurrency($event.target.value)"
       />
     </label>
 
-    <mat-form-field class="exchange-rate-table__filter" appearance="outline">
-      <mat-label>Filter currencies</mat-label>
-      <mat-select
-        multiple
-        panelClass="exchange-rate-filter-panel"
-        [value]="selectedCurrencyCodes()"
-        (selectionChange)="onCurrencyFilterChange($event.value)"
-      >
-        @for (code of supportedCurrencyCodes; track code) {
-        <mat-option [value]="code">{{ code }} - {{ CURRENCY[code] }}</mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
+    <app-select
+      class="--filter"
+      label="Filter currencies"
+      [multiple]="true"
+      panelClass="exchange-rate-filter-panel"
+      [value]="selectedCurrencyCodes()"
+      [options]="supportedCurrencyCodes"
+      [optionLabel]="currencyOptionLabel"
+      (selectionChange)="onCurrencyFilterChange($event)"
+    />
 
     <app-button
       [svg]="clearFilterSvg"
@@ -32,7 +29,7 @@
     />
   </div>
 
-  @if (conversionRows().length) {
-  <app-table [dataSource]="conversionRows()" [columns]="tableColumns" />
+  @if (tableRows().length) {
+  <app-table [dataSource]="tableRows()" [columns]="tableColumns" />
   }
 </div>
