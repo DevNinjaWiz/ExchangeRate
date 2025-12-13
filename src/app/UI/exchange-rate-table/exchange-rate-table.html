@@ -1,5 +1,15 @@
 <div class="exchange-rate-table">
   <div class="--controls">
+    <label class="--base-currency">
+      Base Currency
+      <input
+        type="text"
+        placeholder="USD"
+        [value]="DEFAULT_BASE_CURRENCY_CODE"
+        (input)="onBaseCurrencyChange($event.target.value)"
+      />
+    </label>
+
     <label class="--search">
       <input
         type="text"

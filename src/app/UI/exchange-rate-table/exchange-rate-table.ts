@@ -1,9 +1,14 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
-import { merge, Subject, takeUntil, tap } from 'rxjs';
+import { debounceTime, merge, Subject, takeUntil, tap } from 'rxjs';
 import { CurrencyRate, SupportedCurrencyCode, TableColumn, TableRow } from '../../../shared/types';
 import { ExchangeRate } from '../../services';
-import { CURRENCY, THEME_FILTER_CLEAR_SVG } from '../../../shared/constants';
+import {
+  CURRENCY,
+  DEFAULT_BASE_CURRENCY_CODE,
+  DEFAULT_DEBOUNCE_TIME,
+  THEME_FILTER_CLEAR_SVG,
+} from '../../../shared/constants';
 import { Button, Select, Table } from '../../../shared/components';
 
 @Component({
@@ -15,6 +20,7 @@ import { Button, Select, Table } from '../../../shared/components';
 export class ExchangeRateTable implements OnInit, OnDestroy {
   clearFilterSvg = THEME_FILTER_CLEAR_SVG;
 
+  DEFAULT_BASE_CURRENCY_CODE = DEFAULT_BASE_CURRENCY_CODE;
   currencyRate = signal<CurrencyRate | null>(null);
   supportedCurrencyCodes = Object.keys(CURRENCY).sort() as SupportedCurrencyCode[];
   selectedCurrencyCodes = signal<SupportedCurrencyCode[]>([]);
@@ -62,6 +68,7 @@ export class ExchangeRateTable implements OnInit, OnDestroy {
     return rows;
   });
 
+  private _changeCurrencyCode$ = new Subject<SupportedCurrencyCode>();
   private _filterCurrencyCode$ = new Subject<SupportedCurrencyCode[]>();
   private _clearFilterCurrencyCode$ = new Subject<void>();
   private _destroy$ = new Subject<void>();
@@ -81,6 +88,16 @@ export class ExchangeRateTable implements OnInit, OnDestroy {
     this.currencySearchQuery.set(value);
   }
 
+  onBaseCurrencyChange(value: string) {
+    const code = value.trim().toUpperCase();
+
+    if (!(code in CURRENCY)) {
+      return;
+    }
+
+    this._changeCurrencyCode$.next(code as SupportedCurrencyCode);
+  }
+
   onCurrencyFilterChange(currenciesCode: string[]) {
     const codes = currenciesCode.map(
       (currencyCode) => currencyCode.toUpperCase() as SupportedCurrencyCode
@@ -94,6 +111,11 @@ export class ExchangeRateTable implements OnInit, OnDestroy {
   }
 
   private initWatcher() {
+    const watchChangeCurrencyCode$ = this._changeCurrencyCode$.pipe(
+      debounceTime(DEFAULT_DEBOUNCE_TIME),
+      tap((code) => this.exchangeRate.updateBaseCurrency(code))
+    );
+
     const watchGetExchangeRate$ = this.exchangeRate.currencyRateStream$.pipe(
       tap((rate) => this.currencyRate.set(rate))
     );
@@ -111,7 +133,12 @@ export class ExchangeRateTable implements OnInit, OnDestroy {
       })
     );
 
-    merge(watchGetExchangeRate$, watchFilterCurrencyCode$, watchClearFilterCurrencyCode$)
+    merge(
+      watchGetExchangeRate$,
+      watchChangeCurrencyCode$,
+      watchFilterCurrencyCode$,
+      watchClearFilterCurrencyCode$
+    )
       .pipe(takeUntil(this._destroy$))
       .subscribe();
   }
