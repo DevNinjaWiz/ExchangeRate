@@ -29,3 +29,12 @@ export const THEME_FILTER_FILLED_SVG = `
   <path d="M3 5a1 1 0 0 1 1-1h16a1 1 0 0 1 .8 1.6L14 13.5V20a1 1 0 0 1-.4.8l-4 3A1 1 0 0 1 8 23v-9.5L3.2 5.6A1 1 0 0 1 3 5z"></path>
 </svg>
 `;
+
+export const THEME_FILTER_CLEAR_SVG = `
+<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+  <path d="M4 5h16l-6 7v7l-4 2v-9L4 5z"></path>
+  <circle cx="18" cy="18" r="4.25"></circle>
+  <line x1="16.5" y1="16.5" x2="19.5" y2="19.5"></line>
+  <line x1="19.5" y1="16.5" x2="16.5" y2="19.5"></line>
+</svg>
+`;
