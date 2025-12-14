@@ -1,0 +1,37 @@
+<div class="history-rate">
+  <div class="history-rate__controls">
+    <app-select
+      label="Range"
+      [options]="rangeOptions"
+      [value]="range()"
+      [panelClass]="'history-rate-select-panel'"
+      (selectionChange)="onRangeChange($event)"
+    ></app-select>
+
+    <app-select
+      label="Targets"
+      [multiple]="true"
+      [options]="targetOptions"
+      [optionLabel]="targetOptionLabel"
+      [value]="selectedTargets()"
+      [panelClass]="'history-rate-select-panel'"
+      (selectionChange)="onTargetsChange($event)"
+    ></app-select>
+  </div>
+
+  @if (error()) {
+    <p class="history-rate__error">{{ error() }}</p>
+  }
+
+  @if (!selectedTargets().length) {
+    <p class="history-rate__hint">Select at least one target currency.</p>
+  }
+
+  <div class="history-rate__chart">
+    <canvas #historyChartCanvas></canvas>
+
+    @if (loading()) {
+      <div class="history-rate__loading">Loading chart data...</div>
+    }
+  </div>
+</div>

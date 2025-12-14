@@ -1,3 +1,4 @@
+export * from './currency-history-range.const';
 export * from './currency.const';
 export * from './debounce-time.const';
 export * from './local-storage-key.const';

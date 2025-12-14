@@ -1,0 +1,53 @@
+.history-rate {
+  display: grid;
+  gap: 12px;
+}
+
+.history-rate__controls {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.history-rate__chart {
+  position: relative;
+  width: 100%;
+  height: 360px;
+}
+
+.history-rate__loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(2px);
+  font-size: 14px;
+}
+
+:host-context(.theme-dark) .history-rate__loading {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.history-rate__error {
+  margin: 0;
+  font-size: 14px;
+  color: #dc2626;
+}
+
+.history-rate__hint {
+  margin: 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+@media (max-width: 720px) {
+  .history-rate__controls {
+    grid-template-columns: 1fr;
+  }
+
+  .history-rate__chart {
+    height: 300px;
+  }
+}

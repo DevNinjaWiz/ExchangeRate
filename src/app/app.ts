@@ -11,10 +11,11 @@ import {
 import { Button, Section } from '../shared/components';
 import { Calculator } from './UI/calculator/calculator';
 import { ExchangeRateTable } from './UI/exchange-rate-table/exchange-rate-table';
+import { HistoryRate } from "./UI/history-rate/history-rate";
  
 @Component({
   selector: 'app-root',
-  imports: [Button, Section, Calculator, ExchangeRateTable],
+  imports: [Button, Section, Calculator, ExchangeRateTable, HistoryRate],
   templateUrl: './app.html',
   styleUrls: ['./app.scss'],
   providers: [],

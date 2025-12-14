@@ -20,7 +20,7 @@ export class ExchangeRate {
 
   constructor(private currencyRateApi: CurrencyRateApi) {}
 
-  currencyRateStreamFor$(baseCurrencyCode: SupportedCurrencyCode): Observable<CurrencyRate> {
+  currencyRateStreamFor$(baseCurrencyCode: SupportedCurrencyCode) {
     const existingRate = this.rateStreamByBaseCurrency.get(baseCurrencyCode);
 
     if (existingRate) {
@@ -36,7 +36,7 @@ export class ExchangeRate {
     return stream;
   }
 
-  private pollUntilNextUpdate(currencyCode: SupportedCurrencyCode): Observable<CurrencyRate> {
+  private pollUntilNextUpdate(currencyCode: SupportedCurrencyCode) {
     const httpGetCurrencyRate = (): Observable<CurrencyRate> =>
       this.currencyRateApi.getCurrencyRate(currencyCode).pipe(
         tap((rate) => this.writeCachedRate(currencyCode, rate)),
@@ -58,7 +58,7 @@ export class ExchangeRate {
     });
   }
 
-  private msUntilNextUpdate(rate: CurrencyRate): number {
+  private msUntilNextUpdate(rate: CurrencyRate) {
     const nextUpdateMs = rate.timeNextUpdateUnix * 1000;
     const deltaMs = nextUpdateMs - Date.now();
 

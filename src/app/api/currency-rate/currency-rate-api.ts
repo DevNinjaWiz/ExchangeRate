@@ -12,8 +12,7 @@ export class CurrencyRateApi {
   constructor(private http: HttpClient) {}
 
   getCurrencyRate(currencyCode: string): Observable<CurrencyRate> {
-    const normalizedCode = currencyCode.trim().toUpperCase();
-    const url = `${this.apiBaseUrl}/latest/${normalizedCode}`;
+    const url = `${this.apiBaseUrl}/latest/${currencyCode}`;
 
     return this.http.get<LatestRatesDTO>(url).pipe(
       map((res) => ({

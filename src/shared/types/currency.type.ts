@@ -13,3 +13,5 @@ export interface CurrencyRate {
 }
 
 export type SupportedCurrencyCode = keyof typeof CURRENCY;
+
+export type CurrencyHistoryRateDateOption = 'daily' | 'weekly' | 'monthly';

@@ -9,7 +9,7 @@ import {
   takeUntil,
   tap,
 } from 'rxjs';
-import { ExchangeRate } from '../../services';
+import { CurrencyHistory, ExchangeRate } from '../../services';
 import { Select } from '../../../shared/components';
 import {
   CURRENCY,
@@ -82,9 +82,10 @@ export class Calculator implements OnInit, OnDestroy {
   private _changeTargetCurrencyAmount$ = new Subject<number>();
   private _destroy$ = new Subject<void>();
 
-  constructor(private exchangeRate: ExchangeRate) {}
+  constructor(private exchangeRate: ExchangeRate, private test: CurrencyHistory) {}
 
   ngOnInit(): void {
+    this.test.currencyHistoryRateSeriesFor$('monthly','USD').subscribe(res=>console.log("js te",res))
     this.initWatcher();
   }
 
