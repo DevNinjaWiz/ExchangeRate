@@ -17,12 +17,16 @@ import {
   switchMap,
   takeUntil,
   tap,
-	} from 'rxjs';
-	import { CurrencyHistory } from '../../services';
-	import { Select } from '../../../shared/components';
-	import { CurrencyHistoryRate, CurrencyHistoryRateDateOption, SupportedCurrencyCode } from '../../../shared/types';
-	import { CURRENCY } from '../../../shared/constants';
-	import { getSupportedCurrencyCode, toDashDropDownDelimiter } from '../../../shared/functions';
+} from 'rxjs';
+import { CurrencyHistory } from '../../services';
+import { Select } from '../../../shared/components';
+import {
+  CurrencyHistoryRate,
+  CurrencyHistoryRateDateOption,
+  SupportedCurrencyCode,
+} from '../../../shared/types';
+import { CURRENCY } from '../../../shared/constants';
+import { getSupportedCurrencyCode, toDashDropDownDelimiter } from '../../../shared/functions';
 
 let chartJsImport: Promise<typeof import('chart.js/auto')> | null = null;
 const loadChartJs = () => (chartJsImport ??= import('chart.js/auto'));
@@ -33,23 +37,23 @@ const loadChartJs = () => (chartJsImport ??= import('chart.js/auto'));
   templateUrl: './history-rate.html',
   styleUrl: './history-rate.scss',
 })
-	export class HistoryRate implements OnInit, AfterViewInit, OnDestroy {
+export class HistoryRate implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('historyChartCanvas')
   private historyChartCanvas?: ElementRef<HTMLCanvasElement>;
 
-	  readonly baseCurrencyCode: SupportedCurrencyCode = 'USD';
-	  readonly rangeOptions: CurrencyHistoryRateDateOption[] = ['daily', 'weekly', 'monthly'];
-	  readonly targetOptions: SupportedCurrencyCode[] = getSupportedCurrencyCode().filter(
-	    (code) => code !== this.baseCurrencyCode
-	  );
-	  readonly defaultTargetOptions: SupportedCurrencyCode[] = ['MYR', 'SGD', 'EUR'];
-	  readonly targetOptionLabel = (code: SupportedCurrencyCode) =>
-	    toDashDropDownDelimiter(code, CURRENCY[code] ?? '');
+  readonly baseCurrencyCode: SupportedCurrencyCode = 'USD';
+  readonly rangeOptions: CurrencyHistoryRateDateOption[] = ['daily', 'weekly', 'monthly'];
+  readonly targetOptions: SupportedCurrencyCode[] = getSupportedCurrencyCode().filter(
+    (code) => code !== this.baseCurrencyCode
+  );
+  readonly defaultTargetOptions: SupportedCurrencyCode[] = ['MYR', 'SGD', 'EUR'];
+  readonly targetOptionLabel = (code: SupportedCurrencyCode) =>
+    toDashDropDownDelimiter(code, CURRENCY[code] ?? '');
 
-	  range = signal<CurrencyHistoryRateDateOption>('monthly');
-	  selectedTargets = signal<SupportedCurrencyCode[]>([...this.defaultTargetOptions]);
-	  loading = signal<boolean>(true);
-	  error = signal<string | null>(null);
+  range = signal<CurrencyHistoryRateDateOption>('monthly');
+  selectedTargets = signal<SupportedCurrencyCode[]>([...this.defaultTargetOptions]);
+  loading = signal<boolean>(true);
+  error = signal<string | null>(null);
 
   private series = signal<CurrencyHistoryRate[]>([]);
 

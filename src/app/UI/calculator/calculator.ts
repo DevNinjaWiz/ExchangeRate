@@ -82,10 +82,9 @@ export class Calculator implements OnInit, OnDestroy {
   private _changeTargetCurrencyAmount$ = new Subject<number>();
   private _destroy$ = new Subject<void>();
 
-  constructor(private exchangeRate: ExchangeRate, private test: CurrencyHistory) {}
+  constructor(private exchangeRate: ExchangeRate) {}
 
   ngOnInit(): void {
-    this.test.currencyHistoryRateSeriesFor$('monthly','USD').subscribe(res=>console.log("js te",res))
     this.initWatcher();
   }
 

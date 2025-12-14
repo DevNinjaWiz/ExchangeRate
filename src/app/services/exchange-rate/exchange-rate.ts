@@ -2,12 +2,11 @@ import { Injectable } from '@angular/core';
 import { CurrencyRateApi } from '../../api';
 import { Observable, defer, of, timer } from 'rxjs';
 import { catchError, expand, shareReplay, switchMap, tap } from 'rxjs/operators';
-import { DEFAULT_POLLING_INTERVAL_TIME } from '../../../shared/constants';
+import { DEFAULT_POLLING_INTERVAL_TIME, TIME } from '../../../shared/constants';
 import { CurrencyRate, SupportedCurrencyCode } from '../../../shared/types';
 import { toExchangeRateStorageKey } from '../../../shared/functions';
 
 const SHOULD_FETCH_NOW = 0;
-const ONE_MS = 1000;
 
 @Injectable({
   providedIn: 'root',
@@ -59,7 +58,7 @@ export class ExchangeRate {
   }
 
   private msUntilNextUpdate(rate: CurrencyRate) {
-    const nextUpdateMs = rate.timeNextUpdateUnix * 1000;
+    const nextUpdateMs = rate.timeNextUpdateUnix * TIME.ONE_SECOND;
     const deltaMs = nextUpdateMs - Date.now();
 
     if (!Number.isFinite(deltaMs)) {
@@ -70,7 +69,7 @@ export class ExchangeRate {
       return SHOULD_FETCH_NOW;
     }
 
-    return Math.max(ONE_MS, deltaMs);
+    return Math.max(TIME.ONE_SECOND, deltaMs);
   }
 
   private readCachedRate(currencyCode: SupportedCurrencyCode) {
@@ -92,6 +91,6 @@ export class ExchangeRate {
       return false;
     }
 
-    return rate.timeNextUpdateUnix * ONE_MS > Date.now();
+    return rate.timeNextUpdateUnix * TIME.ONE_SECOND > Date.now();
   }
 }

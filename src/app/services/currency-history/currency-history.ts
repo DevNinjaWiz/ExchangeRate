@@ -4,7 +4,6 @@ import {
   catchError,
   concatMap,
   expand,
-  map,
   shareReplay,
   switchMap,
   tap,
@@ -12,9 +11,9 @@ import {
 } from 'rxjs/operators';
 import { CurrencyHistoryRateApi } from '../../api';
 import {
-  CURRENCY,
   DEFAULT_HISTORY_RANGE,
   DEFAULT_POLLING_INTERVAL_TIME,
+  TIME,
 } from '../../../shared/constants';
 import {
   CurrencyHistoryRate,
@@ -24,8 +23,6 @@ import {
 import { toCurrencyHistoryStorageKey, toYYYY_MM_DD } from '../../../shared/functions';
 
 const SHOULD_FETCH_NOW = 0;
-const ONE_MS = 1000;
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const MAX_DATE_RETRIES = 3;
 
 type CachedCurrencyHistorySeries = {
@@ -64,7 +61,9 @@ export class CurrencyHistory {
   ) {
     const httpGetHistorySeries = (): Observable<CurrencyHistoryRate[]> =>
       this.fetchHistorySeries(dateOption, baseCurrencyCode).pipe(
-        tap((series) => this.writeCachedSeries(dateOption, baseCurrencyCode, series)),
+        tap((series) =>
+          this.writeCachedSeriesByDate(dateOption, baseCurrencyCode, this.toSeriesByDate(series))
+        ),
         catchError(() =>
           timer(DEFAULT_POLLING_INTERVAL_TIME).pipe(switchMap(() => httpGetHistorySeries()))
         )
@@ -84,15 +83,20 @@ export class CurrencyHistory {
     dateOption: CurrencyHistoryRateDateOption,
     baseCurrencyCode: SupportedCurrencyCode
   ) {
-    const anchorDateString = toYYYY_MM_DD(new Date());
-    const anchorDate = this.parseHistoryDate(anchorDateString);
+    const todayDate = toYYYY_MM_DD(new Date());
     const points = DEFAULT_HISTORY_RANGE[dateOption];
-    const dateStrings = this.buildDailyDateSeries(anchorDate, points);
+    const dateStrings = this.buildDailyDateSeries(todayDate, points);
 
-    const seriesByDate = this.pruneSeriesByDateToExpectedDates(
-      this.readCachedSeriesByDate(dateOption, baseCurrencyCode),
-      dateStrings
-    );
+    const cachedSeriesByDate = this.readCachedSeriesByDate(dateOption, baseCurrencyCode);
+    const seriesByDate: Record<string, CurrencyHistoryRate> = {};
+
+    for (const date of dateStrings) {
+      const cached = cachedSeriesByDate[date];
+
+      if (cached && Object.keys(cached.conversionRates ?? {}).length) {
+        seriesByDate[date] = cached;
+      }
+    }
 
     this.writeCachedSeriesByDate(dateOption, baseCurrencyCode, seriesByDate);
 
@@ -111,7 +115,7 @@ export class CurrencyHistory {
           }),
           catchError(() => {
             if (retriesRemaining <= 0) {
-              return of(this.failedHistoryRate(date, baseCurrencyCode));
+              return of({ date, baseCurrencyCode, conversionRates: {} });
             }
 
             return timer(DEFAULT_POLLING_INTERVAL_TIME).pipe(
@@ -130,11 +134,11 @@ export class CurrencyHistory {
   }
 
   private msUntilNextUpdate(): number {
-    const now = new Date();
+    const today = new Date();
     const nextMidnightUtc = Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate() + 1,
+      today.getUTCFullYear(),
+      today.getUTCMonth(),
+      today.getUTCDate() + 1,
       0,
       0,
       0,
@@ -150,23 +154,23 @@ export class CurrencyHistory {
       return SHOULD_FETCH_NOW;
     }
 
-    return Math.max(ONE_MS, deltaMs);
+    return Math.max(TIME.ONE_SECOND, deltaMs);
   }
 
   private readCachedSeries(
     dateOption: CurrencyHistoryRateDateOption,
     baseCurrencyCode: SupportedCurrencyCode
   ) {
-    const points = DEFAULT_HISTORY_RANGE[dateOption];
+    const dateOptionRange = DEFAULT_HISTORY_RANGE[dateOption];
     const today = toYYYY_MM_DD(new Date());
-    const expectedDates = this.buildDailyDateSeries(this.parseHistoryDate(today), points);
+    const expectedDates = this.buildDailyDateSeries(today, dateOptionRange);
     const seriesByDate = this.readCachedSeriesByDate(dateOption, baseCurrencyCode);
 
     if (!Object.keys(seriesByDate).length) {
       return null;
     }
 
-    const series: CurrencyHistoryRate[] = [];
+    let series: CurrencyHistoryRate[] = [];
 
     for (const date of expectedDates) {
       const cached = seriesByDate[date];
@@ -175,25 +179,16 @@ export class CurrencyHistory {
         return null;
       }
 
-      series.push(cached);
+      series = [...series, cached];
     }
 
     return series;
   }
 
-  private writeCachedSeries(
-    dateOption: CurrencyHistoryRateDateOption,
-    baseCurrencyCode: SupportedCurrencyCode,
-    series: CurrencyHistoryRate[]
-  ) {
-    const seriesByDate = this.toSeriesByDate(series);
-    this.writeCachedSeriesByDate(dateOption, baseCurrencyCode, seriesByDate);
-  }
-
   private readCachedSeriesByDate(
     dateOption: CurrencyHistoryRateDateOption,
     baseCurrencyCode: SupportedCurrencyCode
-  ): Record<string, CurrencyHistoryRate> {
+  ) {
     const seriesString = localStorage.getItem(
       toCurrencyHistoryStorageKey(dateOption, baseCurrencyCode)
     );
@@ -202,25 +197,10 @@ export class CurrencyHistory {
       return {};
     }
 
-    try {
-      const parsed = JSON.parse(seriesString) as
-        | CachedCurrencyHistorySeries
-        | CurrencyHistoryRate[];
+    const parsed = JSON.parse(seriesString) as CachedCurrencyHistorySeries;
+    const seriesByDate = parsed.seriesByDate;
 
-      if (Array.isArray(parsed)) {
-        return this.toSeriesByDate(parsed);
-      }
-
-      const seriesByDate = parsed?.seriesByDate;
-
-      if (!seriesByDate || typeof seriesByDate !== 'object') {
-        return {};
-      }
-
-      return seriesByDate as Record<string, CurrencyHistoryRate>;
-    } catch {
-      return {};
-    }
+    return seriesByDate as Record<string, CurrencyHistoryRate>;
   }
 
   private writeCachedSeriesByDate(
@@ -228,11 +208,9 @@ export class CurrencyHistory {
     baseCurrencyCode: SupportedCurrencyCode,
     seriesByDate: Record<string, CurrencyHistoryRate>
   ) {
-    const payload: CachedCurrencyHistorySeries = { seriesByDate };
-
     localStorage.setItem(
       toCurrencyHistoryStorageKey(dateOption, baseCurrencyCode),
-      JSON.stringify(payload)
+      JSON.stringify({ seriesByDate })
     );
   }
 
@@ -240,7 +218,7 @@ export class CurrencyHistory {
     const seriesByDate: Record<string, CurrencyHistoryRate> = {};
 
     for (const item of series) {
-      if (item?.date && this.shouldCacheRate(item)) {
+      if (item.date && Object.keys(item.conversionRates ?? {}).length) {
         seriesByDate[item.date] = item;
       }
     }
@@ -248,41 +226,12 @@ export class CurrencyHistory {
     return seriesByDate;
   }
 
-  private pruneSeriesByDateToExpectedDates(
-    seriesByDate: Record<string, CurrencyHistoryRate>,
-    expectedDates: string[]
-  ) {
-    const pruned: Record<string, CurrencyHistoryRate> = {};
-
-    for (const date of expectedDates) {
-      const cached = seriesByDate[date];
-
-      if (cached && this.shouldCacheRate(cached)) {
-        pruned[date] = cached;
-      }
-    }
-
-    return pruned;
-  }
-
-  private shouldCacheRate(rate: CurrencyHistoryRate) {
-    const conversionRates = rate?.conversionRates ?? {};
-    return !!Object.keys(conversionRates).length;
-  }
-
-  private failedHistoryRate(date: string, baseCurrencyCode: SupportedCurrencyCode) {
-    return { date, baseCurrencyCode, conversionRates: {} };
-  }
-
-  private parseHistoryDate(date: string): Date {
-    return new Date(`${date}T00:00:00.000Z`);
-  }
-
-  private buildDailyDateSeries(anchorDate: Date, points: number) {
+  private buildDailyDateSeries(todayDate: string, dateOptionRange: number) {
+    const today = new Date(`${todayDate}T00:00:00.000Z`);
     const dates: string[] = [];
 
-    for (let offset = points - 1; offset >= 0; offset--) {
-      dates.push(new Date(anchorDate.getTime() - offset * MS_PER_DAY).toISOString().slice(0, 10));
+    for (let offset = dateOptionRange - 1; offset >= 0; offset--) {
+      dates.push(toYYYY_MM_DD(new Date(today.getTime() - offset * TIME.MS_PER_DAY)));
     }
 
     return dates;
