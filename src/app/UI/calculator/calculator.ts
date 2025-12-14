@@ -1,110 +1,176 @@
-import { Component, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
+import {
+  BehaviorSubject,
+  distinctUntilChanged,
+  merge,
+  Subject,
+  switchMap,
+  takeUntil,
+  tap,
+} from 'rxjs';
+import { ExchangeRate } from '../../services';
+import { Select } from '../../../shared/components';
+import {
+  CURRENCY,
+  DEFAULT_BASE_CURRENCY_CODE,
+  DEFAULT_TARGET_CURRENCY_CODE,
+} from '../../../shared/constants';
+import { CurrencyRate, SupportedCurrencyCode } from '../../../shared/types';
+import {
+  getSupportedCurrencyCode,
+  toDashDropDownDelimiter,
+  toTwoDecimalPlace,
+} from '../../../shared/functions';
 
-type TargetState = {
-  id: number;
-  currencyCode: string;
-  amount: number;
-};
+const SAME_CURRENCY_CODE_RATE = 1;
+const LOAD_RATE_MESSAGE = 'Loading exchange rate…';
 
 @Component({
   selector: 'app-calculator',
-  imports: [],
+  imports: [CommonModule, Select],
   templateUrl: './calculator.html',
   styleUrl: './calculator.scss',
   providers: [],
 })
-export class Calculator {
-  // private targetIdCounter = 0;
-  // currencies = Object.entries(CURRENCY)
-  //   .map(([code, name]) => ({ code, name }))
-  //   .sort((a, b) => a.code.localeCompare(b.code));
-  // baseCurrencyCode = signal<string>('USD');
-  // baseAmount = signal<number>(0);
-  // targets = signal<TargetState[]>([{ id: this.targetIdCounter++, currencyCode: 'EUR', amount: 0 }]);
-  // constructor() {}
-  // onBaseCurrencyChange(event: Event) {
-  //   const code = (event.target as HTMLSelectElement).value;
-  //   this.baseCurrencyCode.set(code);
-  //   this.updateTargetsFromBase().catch((err) =>
-  //     console.error('Failed to update targets from base currency change', err)
-  //   );
-  // }
-  // onBaseCurrencyAmountChange(value: string) {
-  //   const amount = this.parseAmount(value);
-  //   this.baseAmount.set(amount);
-  //   this.updateTargetsFromBase().catch((err) =>
-  //     console.error('Failed to update targets from base amount change', err)
-  //   );
-  // }
-  // onTargetCurrencyChange(index: number, event: Event) {
-  //   const code = (event.target as HTMLSelectElement).value;
-  //   const nextTargets = [...this.targets()];
-  //   if (!nextTargets[index]) return;
-  //   nextTargets[index] = { ...nextTargets[index], currencyCode: code };
-  //   this.targets.set(nextTargets);
-  //   this.updateTargetsFromBase(index).catch((err) =>
-  //     console.error('Failed to update target from currency change', err)
-  //   );
-  // }
-  // onTargetCurrencyAmountChange(index: number, value: string) {
-  //   const amount = this.parseAmount(value);
-  //   const nextTargets = [...this.targets()];
-  //   if (!nextTargets[index]) return;
-  //   nextTargets[index] = { ...nextTargets[index], amount };
-  //   this.targets.set(nextTargets);
-  //   this.updateBaseFromTarget(index)
-  //     .then(() => this.updateTargetsFromBase(index))
-  //     .catch((err) => console.error('Failed to update base from target change', err));
-  // }
-  // addTarget() {
-  //   const nextTargets = [
-  //     ...this.targets(),
-  //     { id: this.targetIdCounter++, currencyCode: 'EUR', amount: 0 },
-  //   ];
-  //   this.targets.set(nextTargets);
-  //   this.updateTargetsFromBase(nextTargets.length - 1).catch((err) =>
-  //     console.error('Failed to update new target', err)
-  //   );
-  // }
-  // removeTarget(index: number) {
-  //   const nextTargets = [...this.targets()];
-  //   nextTargets.splice(index, 1);
-  //   this.targets.set(nextTargets);
-  // }
-  // private async updateTargetsFromBase(excludeIndex?: number) {
-  //   const baseCode = this.baseCurrencyCode();
-  //   const baseAmount = this.baseAmount();
-  //   const currentTargets = this.targets();
-  //   const nextTargets = [...currentTargets];
-  //   await Promise.all(
-  //     currentTargets.map(async (t, i) => {
-  //       if (excludeIndex === i) return;
-  //       const converted = await this.calculatorApi.convertAmount(
-  //         baseCode,
-  //         t.currencyCode,
-  //         baseAmount
-  //       );
-  //       nextTargets[i] = { ...t, amount: this.roundCurrency(converted) };
-  //     })
-  //   );
-  //   this.targets.set(nextTargets);
-  // }
-  // private async updateBaseFromTarget(index: number) {
-  //   const target = this.targets()[index];
-  //   if (!target) return;
-  //   const newBase = await this.calculatorApi.convertAmount(
-  //     target.currencyCode,
-  //     this.baseCurrencyCode(),
-  //     target.amount
-  //   );
-  //   this.baseAmount.set(this.roundCurrency(newBase));
-  // }
-  // private parseAmount(value: string) {
-  //   const parsed = Number(value);
-  //   if (!Number.isFinite(parsed) || parsed < 0) return 0;
-  //   return parsed;
-  // }
-  // private roundCurrency(value: number) {
-  //   return Math.round(value * 10000) / 10000;
-  // }
+export class Calculator implements OnInit, OnDestroy {
+  supportedCurrencyCodes = getSupportedCurrencyCode();
+  currencyOptionLabel = (code: SupportedCurrencyCode) =>
+    toDashDropDownDelimiter(code, CURRENCY[code] ?? '');
+
+  baseCurrencyCode = signal<SupportedCurrencyCode>(DEFAULT_BASE_CURRENCY_CODE);
+  targetCurrencyCode = signal<SupportedCurrencyCode>(DEFAULT_TARGET_CURRENCY_CODE);
+  baseAmount = signal<number>(0);
+  targetAmount = signal<number>(0);
+  currencyRate = signal<CurrencyRate | null>(null);
+
+  conversionRate = computed(() => {
+    const rate = this.currencyRate();
+
+    if (!rate) {
+      return null;
+    }
+
+    if (rate.baseCurrencyCode !== this.baseCurrencyCode()) {
+      return null;
+    }
+
+    if (this.baseCurrencyCode() === this.targetCurrencyCode()) {
+      return SAME_CURRENCY_CODE_RATE;
+    }
+
+    return rate.conversionRates[this.targetCurrencyCode()];
+  });
+
+  rateLabel = computed(() => {
+    const rate = this.conversionRate();
+
+    if (rate === null) {
+      return LOAD_RATE_MESSAGE;
+    }
+
+    return `1 ${this.baseCurrencyCode()} = ${rate.toFixed(4)} ${this.targetCurrencyCode()}`;
+  });
+
+  private _changeBaseCurrencyCode$ = new BehaviorSubject<SupportedCurrencyCode>(
+    this.baseCurrencyCode()
+  );
+  private _changeTargetCurrencyCode$ = new BehaviorSubject<SupportedCurrencyCode>(
+    this.targetCurrencyCode()
+  );
+  private _changeBaseCurrencyAmount$ = new Subject<number>();
+  private _changeTargetCurrencyAmount$ = new Subject<number>();
+  private _destroy$ = new Subject<void>();
+
+  constructor(private exchangeRate: ExchangeRate) {}
+
+  ngOnInit(): void {
+    this.initWatcher();
+  }
+
+  ngOnDestroy(): void {
+    this._destroy$.next();
+    this._destroy$.complete();
+  }
+
+  onBaseCurrencyChange(value: string) {
+    const code = value.toUpperCase() as SupportedCurrencyCode;
+
+    if (!(code in CURRENCY)) {
+      return;
+    }
+
+    this._changeBaseCurrencyCode$.next(code);
+  }
+
+  onTargetCurrencyChange(value: string) {
+    const code = value.toUpperCase() as SupportedCurrencyCode;
+
+    if (!(code in CURRENCY)) {
+      return;
+    }
+
+    this._changeTargetCurrencyCode$.next(code);
+  }
+
+  onBaseAmountInput(value: string) {
+    this._changeBaseCurrencyAmount$.next(+value);
+  }
+
+  onTargetAmountInput(value: string) {
+    this._changeTargetCurrencyAmount$.next(+value);
+  }
+
+  private initWatcher() {
+    const watchChangeBaseCurrency$ = this._changeBaseCurrencyCode$.pipe(
+      distinctUntilChanged(),
+      tap((code) => this.baseCurrencyCode.set(code)),
+      switchMap((code) =>
+        this.exchangeRate.currencyRateStreamFor$(code ?? DEFAULT_BASE_CURRENCY_CODE)
+      ),
+      tap((rate) => {
+        this.currencyRate.set(rate);
+        this.recalculateFromBase();
+      })
+    );
+
+    const watchChangeTargetCurrency$ = this._changeTargetCurrencyCode$.pipe(
+      distinctUntilChanged(),
+      tap((code) => {
+        this.targetCurrencyCode.set(code);
+        this.recalculateFromTarget();
+      })
+    );
+
+    const watchChangeBaseCurrencyAmount$ = this._changeBaseCurrencyAmount$.pipe(
+      tap((amount) => {
+        this.baseAmount.set(amount);
+        this.recalculateFromBase();
+      })
+    );
+
+    const watchChangeTargetCurrencyAmount$ = this._changeTargetCurrencyAmount$.pipe(
+      tap((amount) => {
+        this.targetAmount.set(amount);
+        this.recalculateFromTarget();
+      })
+    );
+
+    merge(
+      watchChangeBaseCurrency$,
+      watchChangeTargetCurrency$,
+      watchChangeBaseCurrencyAmount$,
+      watchChangeTargetCurrencyAmount$
+    )
+      .pipe(takeUntil(this._destroy$))
+      .subscribe();
+  }
+
+  private recalculateFromBase() {
+    this.targetAmount.set(toTwoDecimalPlace(this.baseAmount() * (this.conversionRate() ?? 0)));
+  }
+
+  private recalculateFromTarget() {
+    this.baseAmount.set(toTwoDecimalPlace(this.targetAmount() / (this.conversionRate() ?? 1)));
+  }
 }

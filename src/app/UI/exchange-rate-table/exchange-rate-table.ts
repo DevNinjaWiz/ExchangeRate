@@ -1,6 +1,15 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
-import { debounceTime, merge, Subject, takeUntil, tap } from 'rxjs';
+import {
+  debounceTime,
+  distinctUntilChanged,
+  merge,
+  of,
+  Subject,
+  switchMap,
+  takeUntil,
+  tap,
+} from 'rxjs';
 import { CurrencyRate, SupportedCurrencyCode, TableColumn, TableRow } from '../../../shared/types';
 import { ExchangeRate } from '../../services';
 import {
@@ -10,6 +19,7 @@ import {
   THEME_FILTER_CLEAR_SVG,
 } from '../../../shared/constants';
 import { Button, Select, Table } from '../../../shared/components';
+import { getSupportedCurrencyCode, toDashDropDownDelimiter } from '../../../shared/functions';
 
 @Component({
   selector: 'app-exchange-rate-table',
@@ -21,11 +31,13 @@ export class ExchangeRateTable implements OnInit, OnDestroy {
   clearFilterSvg = THEME_FILTER_CLEAR_SVG;
 
   DEFAULT_BASE_CURRENCY_CODE = DEFAULT_BASE_CURRENCY_CODE;
+  baseCurrencyCode = signal<SupportedCurrencyCode>(DEFAULT_BASE_CURRENCY_CODE);
   currencyRate = signal<CurrencyRate | null>(null);
-  supportedCurrencyCodes = Object.keys(CURRENCY).sort() as SupportedCurrencyCode[];
+  supportedCurrencyCodes = getSupportedCurrencyCode();
   selectedCurrencyCodes = signal<SupportedCurrencyCode[]>([]);
   currencySearchQuery = signal<string>('');
-  currencyOptionLabel = (code: SupportedCurrencyCode) => `${code} - ${CURRENCY[code] ?? ''}`;
+  currencyOptionLabel = (code: SupportedCurrencyCode) =>
+    toDashDropDownDelimiter(code, CURRENCY[code] ?? '');
 
   tableColumns: TableColumn<TableRow>[] = [
     { id: 'currency', header: 'Currency', cell: (row) => row.currency },
@@ -111,12 +123,13 @@ export class ExchangeRateTable implements OnInit, OnDestroy {
   }
 
   private initWatcher() {
-    const watchChangeCurrencyCode$ = this._changeCurrencyCode$.pipe(
-      debounceTime(DEFAULT_DEBOUNCE_TIME),
-      tap((code) => this.exchangeRate.updateBaseCurrency(code))
-    );
-
-    const watchGetExchangeRate$ = this.exchangeRate.currencyRateStream$.pipe(
+    const watchGetExchangeRate$ = merge(
+      of(DEFAULT_BASE_CURRENCY_CODE),
+      this._changeCurrencyCode$.pipe(debounceTime(DEFAULT_DEBOUNCE_TIME))
+    ).pipe(
+      tap((code) => this.baseCurrencyCode.set(code)),
+      distinctUntilChanged(),
+      switchMap((code) => this.exchangeRate.currencyRateStreamFor$(code)),
       tap((rate) => this.currencyRate.set(rate))
     );
 
@@ -133,12 +146,7 @@ export class ExchangeRateTable implements OnInit, OnDestroy {
       })
     );
 
-    merge(
-      watchGetExchangeRate$,
-      watchChangeCurrencyCode$,
-      watchFilterCurrencyCode$,
-      watchClearFilterCurrencyCode$
-    )
+    merge(watchGetExchangeRate$, watchFilterCurrencyCode$, watchClearFilterCurrencyCode$)
       .pipe(takeUntil(this._destroy$))
       .subscribe();
   }

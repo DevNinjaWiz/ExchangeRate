@@ -1,20 +1,8 @@
 import { Injectable } from '@angular/core';
 import { CurrencyRateApi } from '../../api';
-import { BehaviorSubject, Observable, defer, of, timer } from 'rxjs';
-import {
-  catchError,
-  distinctUntilChanged,
-  expand,
-  filter,
-  map,
-  shareReplay,
-  switchMap,
-  tap,
-} from 'rxjs/operators';
-import {
-  DEFAULT_BASE_CURRENCY_CODE,
-  DEFAULT_POLLING_INTERVAL_TIME,
-} from '../../../shared/constants';
+import { Observable, defer, of, timer } from 'rxjs';
+import { catchError, expand, shareReplay, switchMap, tap } from 'rxjs/operators';
+import { DEFAULT_POLLING_INTERVAL_TIME } from '../../../shared/constants';
 import { CurrencyRate, SupportedCurrencyCode } from '../../../shared/types';
 import { toExchangeRateStorageKey } from '../../../shared/functions';
 
@@ -25,24 +13,27 @@ const ONE_MS = 1000;
   providedIn: 'root',
 })
 export class ExchangeRate {
-  private readonly baseCurrency$ = new BehaviorSubject<SupportedCurrencyCode>(
-    DEFAULT_BASE_CURRENCY_CODE
-  );
-
-  get currencyRateStream$() {
-    return this.baseCurrency$.pipe(
-      map((code) => code.trim().toUpperCase()),
-      filter((code) => !!code.length),
-      distinctUntilChanged(),
-      switchMap((currencyCode) => this.pollUntilNextUpdate(currencyCode as SupportedCurrencyCode)),
-      shareReplay({ bufferSize: 1, refCount: true })
-    );
-  }
+  private readonly rateStreamByBaseCurrency = new Map<
+    SupportedCurrencyCode,
+    Observable<CurrencyRate>
+  >();
 
   constructor(private currencyRateApi: CurrencyRateApi) {}
 
-  updateBaseCurrency(code: SupportedCurrencyCode) {
-    this.baseCurrency$.next(code);
+  currencyRateStreamFor$(baseCurrencyCode: SupportedCurrencyCode): Observable<CurrencyRate> {
+    const existingRate = this.rateStreamByBaseCurrency.get(baseCurrencyCode);
+
+    if (existingRate) {
+      return existingRate;
+    }
+
+    const stream = this.pollUntilNextUpdate(baseCurrencyCode).pipe(
+      shareReplay({ bufferSize: 1, refCount: true })
+    );
+
+    this.rateStreamByBaseCurrency.set(baseCurrencyCode, stream);
+
+    return stream;
   }
 
   private pollUntilNextUpdate(currencyCode: SupportedCurrencyCode): Observable<CurrencyRate> {

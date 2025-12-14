@@ -167,3 +167,4 @@ export const CURRENCY = {
 } as const;
 
 export const DEFAULT_BASE_CURRENCY_CODE: SupportedCurrencyCode = 'USD';
+export const DEFAULT_TARGET_CURRENCY_CODE: SupportedCurrencyCode = 'MYR';
