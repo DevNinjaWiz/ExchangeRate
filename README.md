@@ -1,59 +1,49 @@
-# ExchangeRate
+## Prerequisites
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.0.0.
+- Node.js `22.x` (CI uses Node 22)
+- npm `11.6.2` (see `package.json#packageManager`)
 
-## Development server
+## Setup
 
-To start a local development server, run:
+1. Install dependencies:
 
-```bash
-ng serve
-```
+   ```
+   npm i
+   ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+2. Configure API key for real-time rates:
 
-## Code scaffolding
+   - Update `src/environments/environment.ts` and `src/environments/environment.prod.ts`.
+   - Set `exchangeRateAPI` to your key from `https://www.exchangerate-api.com/`.
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+3. Start the dev server:
 
-```bash
-ng generate component component-name
-```
+   ```
+   npm start
+   ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+   App runs at `http://localhost:4200/`.
 
-```bash
-ng generate --help
-```
+## Commands
 
-## Building
+- `npm start`: run dev server
+- `npm run build`: production build (Angular `build.defaultConfiguration` is `production`)
+- `npm run watch`: continuous build (`development` configuration)
+- `npm test`: unit tests (`@angular/build:unit-test` + `vitest`)
+- `npm run build:prod`: production build with `--base-href=/ExchangeRate/` (for subpath hosting)
 
-To build the project run:
 
-```bash
-ng build
-```
+## Architecture decisions
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+- Standalone Component: Each component will import necessary library only.  
+- Smart vs dumb components:
+  - `src/app/UI`: smart components for handling business logic UI
+  - `src/shared/components`: Reusable presentational components, purely use for UI display. 
+- Layering:
+  - `src/app/api`: data-access layer (HTTP + DTO-to-model mapping).
+  - `src/app/services`: domain layer - handling business logic.
+  - `src/shared/constants`, `src/shared/functions`, `src/shared/types`: shared constants, pure utilities, and type definitions.
+- Styling:
+  - `src/shared/styles`: SCSS mixins and functions.
+  - Follow BEM naming standard but without repeating base class.
+- Reactive approach: Angular `signal()`/`computed()` for local state + RxJS for async streams and side-effects.
