@@ -197,8 +197,29 @@ export class CurrencyHistory {
       return {};
     }
 
-    const parsed = JSON.parse(seriesString) as CachedCurrencyHistorySeries;
-    const seriesByDate = parsed.seriesByDate;
+    let parsed: unknown;
+
+    try {
+      parsed = JSON.parse(seriesString);
+    } catch {
+      return {};
+    }
+
+    if (Array.isArray(parsed)) {
+      const migrated = this.toSeriesByDate(parsed as CurrencyHistoryRate[]);
+      this.writeCachedSeriesByDate(dateOption, baseCurrencyCode, migrated);
+      return migrated;
+    }
+
+    if (!parsed || typeof parsed !== 'object') {
+      return {};
+    }
+
+    const seriesByDate = (parsed as CachedCurrencyHistorySeries).seriesByDate;
+
+    if (!seriesByDate || typeof seriesByDate !== 'object' || Array.isArray(seriesByDate)) {
+      return {};
+    }
 
     return seriesByDate as Record<string, CurrencyHistoryRate>;
   }

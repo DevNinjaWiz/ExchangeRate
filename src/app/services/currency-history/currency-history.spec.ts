@@ -44,17 +44,16 @@ describe('CurrencyHistory', () => {
       );
     }
 
+    const seriesByDate = Object.fromEntries(
+      expectedDates.map((date, index) => [
+        date,
+        { date, baseCurrencyCode: 'USD', conversionRates: { MYR: index + 1 } },
+      ])
+    );
+
     localStorage.setItem(
       'exHistory:weekly:USD',
-      JSON.stringify([
-        { date: expectedDates[0], baseCurrencyCode: 'USD', conversionRates: { MYR: 1 } },
-        { date: expectedDates[1], baseCurrencyCode: 'USD', conversionRates: { MYR: 2 } },
-        { date: expectedDates[2], baseCurrencyCode: 'USD', conversionRates: { MYR: 3 } },
-        { date: expectedDates[3], baseCurrencyCode: 'USD', conversionRates: { MYR: 4 } },
-        { date: expectedDates[4], baseCurrencyCode: 'USD', conversionRates: { MYR: 5 } },
-        { date: expectedDates[5], baseCurrencyCode: 'USD', conversionRates: { MYR: 6 } },
-        { date: expectedDates[6], baseCurrencyCode: 'USD', conversionRates: { MYR: 7 } },
-      ])
+      JSON.stringify({ seriesByDate })
     );
 
     let dates: string[] = [];
