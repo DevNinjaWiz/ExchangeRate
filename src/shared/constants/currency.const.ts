@@ -1,4 +1,4 @@
-import { SupportedCurrencyCode } from '../types';
+import type { CurrencyHistoryRateDateOption, SupportedCurrencyCode } from '../types';
 
 export const CURRENCY = {
   AED: 'UAE Dirham',
@@ -168,3 +168,5 @@ export const CURRENCY = {
 
 export const DEFAULT_BASE_CURRENCY_CODE: SupportedCurrencyCode = 'USD';
 export const DEFAULT_TARGET_CURRENCY_CODE: SupportedCurrencyCode = 'MYR';
+export const DEFAULT_DATE_OPTION: CurrencyHistoryRateDateOption = 'monthly';
+export const DEFAULT_HISTORY_TARGET_OPTIONS = ['MYR', 'SGD', 'EUR'];

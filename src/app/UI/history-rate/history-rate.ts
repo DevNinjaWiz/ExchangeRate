@@ -6,6 +6,7 @@ import {
   OnDestroy,
   OnInit,
   ViewChild,
+  computed,
   signal,
 } from '@angular/core';
 import {
@@ -13,6 +14,7 @@ import {
   Subject,
   catchError,
   distinctUntilChanged,
+  merge,
   of,
   switchMap,
   takeUntil,
@@ -25,11 +27,23 @@ import {
   CurrencyHistoryRateDateOption,
   SupportedCurrencyCode,
 } from '../../../shared/types';
-import { CURRENCY } from '../../../shared/constants';
+import {
+  CURRENCY,
+  DEFAULT_BASE_CURRENCY_CODE,
+  DEFAULT_DATE_OPTION,
+  DEFAULT_HISTORY_TARGET_OPTIONS,
+} from '../../../shared/constants';
 import { getSupportedCurrencyCode, toDashDropDownDelimiter } from '../../../shared/functions';
 
 let chartJsImport: Promise<typeof import('chart.js/auto')> | null = null;
 const loadChartJs = () => (chartJsImport ??= import('chart.js/auto'));
+
+const DATE_RANGE_OPTIONS = ['daily', 'weekly', 'monthly'];
+const TARGET_COLOR: Partial<Record<SupportedCurrencyCode, string>> = {
+  MYR: '#2563eb',
+  SGD: '#16a34a',
+  EUR: '#f59e0b',
+};
 
 @Component({
   selector: 'app-history-rate',
@@ -41,65 +55,38 @@ export class HistoryRate implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('historyChartCanvas')
   private historyChartCanvas?: ElementRef<HTMLCanvasElement>;
 
-  readonly baseCurrencyCode: SupportedCurrencyCode = 'USD';
-  readonly rangeOptions: CurrencyHistoryRateDateOption[] = ['daily', 'weekly', 'monthly'];
-  readonly targetOptions: SupportedCurrencyCode[] = getSupportedCurrencyCode().filter(
-    (code) => code !== this.baseCurrencyCode
-  );
-  readonly defaultTargetOptions: SupportedCurrencyCode[] = ['MYR', 'SGD', 'EUR'];
-  readonly targetOptionLabel = (code: SupportedCurrencyCode) =>
+  DATE_RANGE_OPTIONS = DATE_RANGE_OPTIONS;
+
+  targetOptionLabel = (code: SupportedCurrencyCode) =>
     toDashDropDownDelimiter(code, CURRENCY[code] ?? '');
 
-  range = signal<CurrencyHistoryRateDateOption>('monthly');
-  selectedTargets = signal<SupportedCurrencyCode[]>([...this.defaultTargetOptions]);
+  dateOptions = signal<CurrencyHistoryRateDateOption>(DEFAULT_DATE_OPTION);
+  selectedTargetCurrencies = signal<SupportedCurrencyCode[]>(
+    DEFAULT_HISTORY_TARGET_OPTIONS as SupportedCurrencyCode[]
+  );
   loading = signal<boolean>(true);
   error = signal<string | null>(null);
+  baseCurrencyCode = signal<SupportedCurrencyCode>(DEFAULT_BASE_CURRENCY_CODE);
+
+  targetOptions = computed(() =>
+    getSupportedCurrencyCode().filter((code) => code !== this.baseCurrencyCode())
+  );
 
   private series = signal<CurrencyHistoryRate[]>([]);
 
-  private _destroy$ = new Subject<void>();
-  private _changeRange$ = new BehaviorSubject<CurrencyHistoryRateDateOption>(this.range());
-  private _changeTargets$ = new BehaviorSubject<SupportedCurrencyCode[]>(this.selectedTargets());
-
   private chart: any | null = null;
+  private _changeDateOption$ = new BehaviorSubject<CurrencyHistoryRateDateOption>(
+    this.dateOptions()
+  );
+  private _changeTargetsCurrency$ = new BehaviorSubject<SupportedCurrencyCode[]>(
+    this.selectedTargetCurrencies()
+  );
+  private _destroy$ = new Subject<void>();
 
   constructor(private currencyHistory: CurrencyHistory) {}
 
   ngOnInit(): void {
-    this._changeRange$
-      .pipe(
-        distinctUntilChanged(),
-        tap((range) => {
-          this.range.set(range);
-          this.loading.set(true);
-          this.error.set(null);
-        }),
-        switchMap((range) =>
-          this.currencyHistory.currencyHistoryRateSeriesFor$(range, this.baseCurrencyCode).pipe(
-            catchError((err) => {
-              this.loading.set(false);
-              this.error.set(err instanceof Error ? err.message : String(err));
-              return of([] as CurrencyHistoryRate[]);
-            })
-          )
-        ),
-        takeUntil(this._destroy$)
-      )
-      .subscribe((series) => {
-        this.series.set(series);
-        this.loading.set(false);
-        this.refreshChart();
-      });
-
-    this._changeTargets$
-      .pipe(
-        distinctUntilChanged((a, b) => a.join(',') === b.join(',')),
-        takeUntil(this._destroy$)
-      )
-      .subscribe((targets) => {
-        this.selectedTargets.set(targets);
-        this.refreshChart();
-      });
+    this.initWatcher();
   }
 
   async ngAfterViewInit(): Promise<void> {
@@ -117,16 +104,15 @@ export class HistoryRate implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  onRangeChange(value: CurrencyHistoryRateDateOption) {
-    this._changeRange$.next(value);
+  onDateOptionsChange(value: CurrencyHistoryRateDateOption) {
+    this._changeDateOption$.next(value);
   }
 
-  onTargetsChange(value: SupportedCurrencyCode[]) {
-    const normalized = (value ?? []).filter((code) => this.targetOptions.includes(code));
-    this._changeTargets$.next(normalized);
+  onTargetCurrenciesChange(values: SupportedCurrencyCode[]) {
+    this._changeTargetsCurrency$.next(values.filter((code) => this.targetOptions().includes(code)));
   }
 
-  private async initChart(): Promise<void> {
+  private async initChart() {
     if (this.chart) {
       return;
     }
@@ -198,20 +184,57 @@ export class HistoryRate implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  private refreshChart(): void {
+  private initWatcher() {
+    const watchChangeDateOption$ = this._changeDateOption$.pipe(
+      distinctUntilChanged(),
+      tap((option) => {
+        this.dateOptions.set(option);
+        this.loading.set(true);
+        this.error.set(null);
+      }),
+      switchMap((option) =>
+        this.currencyHistory.currencyHistoryRateSeriesFor$(option, this.baseCurrencyCode()).pipe(
+          catchError((err) => {
+            this.loading.set(false);
+            this.error.set(err);
+            return of([] as CurrencyHistoryRate[]);
+          })
+        )
+      ),
+      tap((series) => {
+        this.series.set(series);
+        this.loading.set(false);
+        this.refreshChart();
+      })
+    );
+
+    const watchChangeTargetCurrency$ = this._changeTargetsCurrency$.pipe(
+      distinctUntilChanged((a, b) => a.join(',') === b.join(',')),
+      tap((targetCurrency) => {
+        this.selectedTargetCurrencies.set(targetCurrency);
+        this.refreshChart();
+      })
+    );
+
+    merge(watchChangeDateOption$, watchChangeTargetCurrency$)
+      .pipe(takeUntil(this._destroy$))
+      .subscribe();
+  }
+
+  private refreshChart() {
     if (!this.chart) {
       return;
     }
 
     const series = this.series();
-    const targets = this.selectedTargets();
+    const targets = this.selectedTargetCurrencies();
 
     this.chart.data.labels = series.map((s) => s.date);
     this.chart.data.datasets = targets.map((target) => {
       const color = TARGET_COLOR[target] ?? '#4b5563';
 
       return {
-        label: `${this.baseCurrencyCode} → ${target}`,
+        label: `${this.baseCurrencyCode()} → ${target}`,
         data: series.map((s) => s.conversionRates[target] ?? null),
         borderColor: color,
         backgroundColor: color,
@@ -224,9 +247,3 @@ export class HistoryRate implements OnInit, AfterViewInit, OnDestroy {
     this.chart.update();
   }
 }
-
-const TARGET_COLOR: Partial<Record<SupportedCurrencyCode, string>> = {
-  MYR: '#2563eb',
-  SGD: '#16a34a',
-  EUR: '#f59e0b',
-};

@@ -2,20 +2,20 @@
   <div class="history-rate__controls">
     <app-select
       label="Range"
-      [options]="rangeOptions"
-      [value]="range()"
+      [options]="DATE_RANGE_OPTIONS"
+      [value]="dateOptions()"
       [panelClass]="'history-rate-select-panel'"
-      (selectionChange)="onRangeChange($event)"
+      (selectionChange)="onDateOptionsChange($event)"
     ></app-select>
 
     <app-select
       label="Targets"
       [multiple]="true"
-      [options]="targetOptions"
+      [options]="targetOptions()"
       [optionLabel]="targetOptionLabel"
-      [value]="selectedTargets()"
+      [value]="selectedTargetCurrencies()"
       [panelClass]="'history-rate-select-panel'"
-      (selectionChange)="onTargetsChange($event)"
+      (selectionChange)="onTargetCurrenciesChange($event)"
     ></app-select>
   </div>
 
@@ -23,7 +23,7 @@
     <p class="history-rate__error">{{ error() }}</p>
   }
 
-  @if (!selectedTargets().length) {
+  @if (!selectedTargetCurrencies().length) {
     <p class="history-rate__hint">Select at least one target currency.</p>
   }
 
