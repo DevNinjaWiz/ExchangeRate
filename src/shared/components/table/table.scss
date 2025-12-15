@@ -1,0 +1,19 @@
+:host {
+  display: block;
+}
+
+table.mat-mdc-table {
+  width: 100%;
+  background-color: var(--surface);
+}
+
+th.mat-mdc-header-cell,
+th.mdc-data-table__header-cell {
+  color: var(--muted);
+}
+
+td.mat-mdc-cell,
+td.mat-mdc-footer-cell,
+td.mdc-data-table__cell {
+  color: var(--text);
+}
